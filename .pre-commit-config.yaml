@@ -1,0 +1,37 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: debug-statements
+    -   id: double-quote-string-fixer
+    -   id: name-tests-test
+-   repo: https://github.com/psf/black
+    rev: 22.10.0
+    hooks:
+    -   id: black
+-   repo: https://github.com/PyCQA/flake8
+    rev: 4.0.1
+    hooks:
+    -   id: flake8
+        name: flake8
+        entry: flake8
+        language: python
+        types: [python]
+        args: [--max-line-length=100]
+        additional_dependencies: [flake8-bugbear, pep8-naming]
+- repo: https://github.com/pycqa/isort
+  rev: 5.12.0
+  hooks:
+    - id: isort
+      name: isort (python)
+- repo: local
+  hooks:
+  -   id: jira-ticket
+      name: check for jira ticket
+      language: pygrep
+      entry: '\A(?!\[task-[0-9]+\]|\[no-task\])'
+      args: [--multiline]
+      stages: [commit-msg]
