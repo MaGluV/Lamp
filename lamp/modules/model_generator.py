@@ -8,8 +8,9 @@ from bs4 import BeautifulSoup  # noqa: F401
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from lamp.modules.base_generator import BaseGenerator
-from lamp.utils.consts import (DEFAULT_DEVICE_NAME, DEFAULT_GENERATOR_PARAMS,
-                               DEFAULT_MODEL, DEFAULT_STRIP_LIST)
+from lamp.utils.consts import (DEFAULT_ACCESS_TOKEN, DEFAULT_DEVICE_NAME,
+                               DEFAULT_GENERATOR_PARAMS, DEFAULT_MODEL,
+                               DEFAULT_STRIP_LIST)
 
 
 class ModelGenerator(BaseGenerator):
@@ -18,11 +19,14 @@ class ModelGenerator(BaseGenerator):
         self._model_name = self._config.get('model_name', DEFAULT_MODEL)
         self._device_name = self._config.get('device_name', DEFAULT_DEVICE_NAME)
         self._params = self._config.get('generator_params', DEFAULT_GENERATOR_PARAMS)
+        self._token = self._config.get('access_token', DEFAULT_ACCESS_TOKEN)
 
         self._model = AutoModelForCausalLM.from_pretrained(
-            self._model_name, device_map=self._device_name
+            self._model_name, device_map=self._device_name, use_auth_token=self._token
         )
-        self._tokenizer = AutoTokenizer.from_pretrained(self._model_name)
+        self._tokenizer = AutoTokenizer.from_pretrained(
+            self._model_name, use_auth_token=self._token
+        )
         self._device = torch.device(self._device_name)
         self._model.to(self._device)
 
