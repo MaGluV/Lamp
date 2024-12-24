@@ -3,3 +3,4 @@ notebooks/*
 *.pyc
 selenium_driver/*
 .env
+vllm
