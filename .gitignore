@@ -4,3 +4,4 @@ notebooks/*
 selenium_driver/*
 .env
 vllm
+test/*
