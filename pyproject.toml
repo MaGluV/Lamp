@@ -30,6 +30,11 @@ langchain = "^0.3.7"
 sentencepiece = "^0.2.0"
 protobuf = "^5.29.2"
 psycopg2-binary = "^2.9.10"
+fastapi = {extras = ["standard"], version = "^0.115.6"}
+sqlmodel = "^0.0.22"
+pyngrok = "^7.2.2"
+passlib = "^1.7.4"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 
 
 [build-system]

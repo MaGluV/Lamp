@@ -2,7 +2,7 @@ import logging
 
 import yaml
 
-from lamp.utils.consts import LOGGER_CONFIG
+from .consts import LOGGER_CONFIG
 
 
 def get_logger(name):

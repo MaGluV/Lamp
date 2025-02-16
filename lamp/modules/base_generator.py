@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import Dict
 
-from lamp.utils.logger import get_logger
+from utils.logger import get_logger
 
 
 class BaseGenerator(ABC):  # noqa: B024

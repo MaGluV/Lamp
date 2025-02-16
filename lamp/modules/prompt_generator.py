@@ -2,7 +2,7 @@ from typing import Dict, List
 
 import requests
 
-from lamp.modules.base_generator import BaseGenerator
+from .base_generator import BaseGenerator
 
 
 class PromptGenerator(BaseGenerator):
@@ -72,13 +72,13 @@ class PromptGenerator(BaseGenerator):
         )
         requirements = ''.join(
             (
-                self.specify_libraries(libs),
-                self.specify_text_split(data_type, parts_num),
-                self.specify_not_found_confition(data_type, not_found_condition),
-                self.specify_special_codition(data_type, spec_condition),
-                self.specify_tag(data_type, tag, attribute),
-                self.specify_expected_result(data_type, expected_result),
-                self.specify_return_format(data_type, ret_format)
+                self._specify_libraries(libs),
+                self._specify_text_split(data_type, parts_num),
+                self._specify_not_found_confition(data_type, not_found_condition),
+                self._specify_special_codition(data_type, spec_condition),
+                self._specify_tag(data_type, tag, attribute),
+                self._specify_expected_result(data_type, expected_result),
+                self._specify_return_format(data_type, ret_format)
             )
         )
         page = requests.get(url)

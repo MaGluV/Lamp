@@ -6,11 +6,11 @@ import requests  # noqa: F401
 import torch
 from bs4 import BeautifulSoup  # noqa: F401
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from utils.consts import (DEFAULT_ACCESS_TOKEN, DEFAULT_DEVICE_NAME,
+                          DEFAULT_GENERATOR_PARAMS, DEFAULT_MODEL,
+                          DEFAULT_STRIP_LIST)
 
-from lamp.modules.base_generator import BaseGenerator
-from lamp.utils.consts import (DEFAULT_ACCESS_TOKEN, DEFAULT_DEVICE_NAME,
-                               DEFAULT_GENERATOR_PARAMS, DEFAULT_MODEL,
-                               DEFAULT_STRIP_LIST)
+from .base_generator import BaseGenerator
 
 
 class ModelGenerator(BaseGenerator):
@@ -32,10 +32,12 @@ class ModelGenerator(BaseGenerator):
 
     def python_code_generator(
         self,
-        prompt: str,
+        prompt: list,
         test_url: str,
         test_result: str,
     ):
+        if not isinstance(prompt, list) and not isinstance(prompt[0], str):
+            raise ValueError(f'Invalid prompt - {prompt}')
         python_code = None
         attempt = 1
         while True:
@@ -70,8 +72,8 @@ class ModelGenerator(BaseGenerator):
                 self._logger.info(err)
                 continue
             # TODO: read result from temporary directory
-            images_file = open('test_results.json', 'r')
-            results = json.load(images_file)
+            results_file = open('test_results.json', 'r')
+            results = json.load(results_file)
             self._logger.info(results)
             if test_result in results[0]:
                 break
@@ -118,13 +120,25 @@ class ModelGenerator(BaseGenerator):
 
     def _model_generate(self, prompt: list, apply_temp: bool = False) -> Any:
         if apply_temp:
-            model_inputs = self._tokenizer.apply_chat_template(
-                prompt, return_tensors='pt'
-            ).to(self._device_name)
+            try:
+                model_inputs = self._tokenizer.apply_chat_template(
+                    prompt, return_tensors='pt'
+                ).to(self._device_name)
+            except Exception as e:
+                raise ValueError(f'Tokenizer stopped with error - {e}')
         else:
-            model_inputs = self._tokenizer(prompt, return_tensors='pt').to(
-                self._device_name
-            )
-        generated_ids = self._model.generate(**model_inputs, **self._params)
-        results = self._tokenizer.batch_decode(generated_ids)
+            try:
+                model_inputs = self._tokenizer(prompt, return_tensors='pt').to(
+                    self._device_name
+                )
+            except Exception as e:
+                raise ValueError(f'Tokenizer stopped with error - {e}')
+        try:
+            generated_ids = self._model.generate(**model_inputs, **self._params)
+        except Exception as e:
+            raise ValueError(f'Generation stopped with error - {e}')
+        try:
+            results = self._tokenizer.batch_decode(generated_ids)
+        except Exception as e:
+            raise ValueError(f'Decoding stopped with error - {e}')
         return results
