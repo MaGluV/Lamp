@@ -5,3 +5,4 @@ selenium_driver/*
 .env
 vllm
 test/*
+lamp_data/*
