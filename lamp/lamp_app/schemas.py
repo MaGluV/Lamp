@@ -56,3 +56,7 @@ class TokenCreate(BaseModel):
     refresh_token: str
     status: bool
     creation_date: datetime.datetime
+
+
+class ExecParams(BaseModel):
+    url: str

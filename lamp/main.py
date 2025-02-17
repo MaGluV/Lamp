@@ -308,12 +308,16 @@ async def generated_code(
 @app.get('/execute-code/{code_id}')
 async def execute_code(
     code_id: int,
+    request: schemas.ExecParams,
     session: SessionDep,
     dependencies=Depends(JWTBearer())
 ) -> schemas.CodeResultsSchema:
     query = select(Lamp_Results).filter_by(code_id=code_id)
     code = session.exec(query).first()
-    exec(code.result_func)
+    url = request.url
+    replacing_line = f'requests.get("{url}")'
+    exec_code = re.sub(r'requests.get(\S+', replacing_line, code.result_func)
+    exec(exec_code)
     results_file = open('test_results.json', 'r').read()
     code_results = schemas.CodeResultsSchema(results=results_file)
     return code_results
