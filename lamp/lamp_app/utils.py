@@ -3,8 +3,6 @@ import re
 from typing import Annotated
 
 from fastapi import Depends
-from lamp_app.models import Lamp_Results
-from modules.model_generator import ModelGenerator
 from sqlmodel import Session, SQLModel, create_engine
 
 ENV_FILE = os.path.join('..', '.env')
@@ -20,7 +18,7 @@ def get_postgre_url() -> str:
 
     user = params['POSTGRES_USER']
     password = params['POSTGRES_PASSWORD']
-    port = params['DEV_PORT'].strip('"').split(':')[0]
+    port = params['POSTGRES_PORT'].strip('"').split(':')[0]
     host = ':'.join((params['POSTGRES_HOST'], port))
     db = params['POSTGRES_DB']
 
@@ -40,32 +38,3 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
-
-
-def run_model(
-    config: dict,
-    project_id: int,
-    prompt_id: int,
-    code_id: int,
-    prompt: str,
-    test_url: str,
-    test_result: str,
-    session: SessionDep,
-):
-    new_code = Lamp_Results(
-        code_id=code_id,
-        result_func='',
-        project_id=project_id,
-        prompt_id=prompt_id
-    )
-    session.add(new_code)
-    session.commit()
-    session.refresh(new_code)
-    model = ModelGenerator(config)
-    code = model.python_code_generator(
-        prompt, test_url, test_result
-    )
-    new_code.result_func = code
-    session.add(new_code)
-    session.commit()
-    session.refresh(new_code)

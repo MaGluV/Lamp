@@ -6,3 +6,5 @@ selenium_driver/*
 vllm
 test/*
 lamp_data/*
+lamp/celery/logs.log
+lamp/celery/test_results.json

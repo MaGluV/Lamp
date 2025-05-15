@@ -21,8 +21,8 @@ class PromptSchema(BaseModel):
     ret_format: str
     url: str
     expected_result: str
-    parts_num: Union[int, None] = Field(default=None, frozen=True)
-    idx: int = Field(default=None, frozen=True)
+    parts_num: Union[int, None] = Field(default=10, frozen=True)
+    idx: int = Field(default=0, frozen=True)
 
 
 class CodeGeneratorSchema(BaseModel):

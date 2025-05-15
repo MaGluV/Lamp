@@ -17,9 +17,11 @@ from lamp_app.tokens import (JWTBearer, create_access_token,
                              create_refresh_token, decode_jwt,
                              get_hashed_password, token_required,
                              verify_password)
-from lamp_app.utils import SessionDep, create_db_and_tables, run_model
+from lamp_app.utils import SessionDep, create_db_and_tables
+from lamp_app.worker import celery_app
 from modules.prompt_generator import PromptGenerator
 from sqlmodel import select
+from utils.logger import get_logger
 
 
 @app.post('/register/')
@@ -183,7 +185,7 @@ async def generate_prompt(
     session: SessionDep,
     dependencies=Depends(JWTBearer())
 ) -> Lamp_Prompts:
-    config = {}
+    config = {'logger': get_logger(PromptGenerator.__name__)}
     pg = PromptGenerator(config)
     result = pg.generate_prompt(
         request.data_type,
@@ -253,15 +255,14 @@ async def get_prompt(
 
 @token_required
 @app.post(
-    '/generate/{project_id}/{prompt_id}',
+    '/start_generator/{project_id}/{prompt_id}',
     response_class=ORJSONResponse
 )
-async def generate(
+async def start_generator(
     project_id: int,
     prompt_id: int,
     request: schemas.CodeGeneratorSchema,
     session: SessionDep,
-    background_tasks: BackgroundTasks,
     dependencies=Depends(JWTBearer())
 ) -> ORJSONResponse:
     query = select(Lamp_Prompts).filter_by(prompt_id=prompt_id)
@@ -269,19 +270,57 @@ async def generate(
     config = {}
     query_results = select(Lamp_Results)
     code_id = len(session.exec(query_results).all())
-    background_tasks.add_task(
-        run_model,
-        config,
-        project_id,
-        prompt_id,
-        code_id,
-        json.loads(prompt.prompt),
-        request.test_url,
-        request.test_result,
-        session,
+    task = celery_app.send_task(
+        'generator.task',
+        args=[
+            code_id,
+            project_id,
+            prompt_id,
+            config,
+            json.loads(prompt.prompt),
+            request.test_url,
+            request.test_result
+        ]
     )
-    msg = f'Start code generation with code id - {code_id}'
-    return ORJSONResponse([{'message': msg}])
+    return dict(
+        task_id=task.id,
+        url=f"/check_task/{task.id}",
+    )
+
+
+@app.get('/drop_task/{task_id}')
+def drop_task(task_id: str):
+    celery_app.control.revoke(task_id, terminate=True)
+
+
+@app.get('/check_task/{task_id}')
+def check_task(task_id: str):
+    task = celery_app.AsyncResult(task_id)
+
+    if task.state == 'SUCCESS':
+        response = {
+            'status': task.state,
+            'result': task.result,
+            'task_id': task_id,
+        }
+
+    elif task.state == 'FAILURE':
+        response = json.loads(
+            task.backend.get(
+                task.backend.get_key_for_task(task.id),
+            ).decode('utf-8')
+        )
+        del response['children']
+        del response['traceback']
+
+    else:
+        response = {
+            'status': task.state,
+            'result': task.info,
+            'task_id': task_id,
+        }
+
+    return response
 
 
 @token_required
@@ -305,7 +344,7 @@ async def generated_code(
 
 
 @token_required
-@app.get('/execute-code/{code_id}')
+@app.post('/execute-code/{code_id}')
 async def execute_code(
     code_id: int,
     request: schemas.ExecParams,
@@ -316,7 +355,7 @@ async def execute_code(
     code = session.exec(query).first()
     url = request.url
     replacing_line = f'requests.get("{url}")'
-    exec_code = re.sub(r'requests.get(\S+', replacing_line, code.result_func)
+    exec_code = re.sub(r'requests.get\(\S+', replacing_line, code.result_func)
     exec(exec_code)
     results_file = open('test_results.json', 'r').read()
     code_results = schemas.CodeResultsSchema(results=results_file)

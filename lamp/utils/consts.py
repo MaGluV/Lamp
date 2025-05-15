@@ -3,14 +3,23 @@ import re
 
 ENV_FILE = os.path.join('..', '.env')
 
-params = dict(re.findall('([a-zA-Z_]+)=(.*)', open(ENV_FILE, 'r').read()))
+
+def get_variable(key, env_file=ENV_FILE):
+    variable = os.getenv(key, None)
+    if os.path.exists(env_file):
+        vars = dict(re.findall('([a-zA-Z_]+)=(.*)', open(env_file, 'r').read()))
+        variable = vars.get(key)
+    if not variable:
+        raise ValueError(f"Can't find variable {key}!")
+    return variable
+
 
 ROOT_PATH = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 LOGGER_CONFIG = os.path.join(ROOT_PATH, '.loggingconfig.yaml')
 
 DEFAULT_DEVICE_NAME = 'cpu'
 DEFAULT_MODEL = 'mistralai/Mistral-7B-Instruct-v0.3'
-DEFAULT_ACCESS_TOKEN = params['DEFAULT_ACCESS_TOKEN']
+DEFAULT_ACCESS_TOKEN = get_variable('DEFAULT_ACCESS_TOKEN')
 DEFAULT_GENERATOR_PARAMS = {
     'max_new_tokens': 4096,
     'do_sample': True,
@@ -24,4 +33,3 @@ DEFAULT_GENERATOR_PARAMS = {
 }
 
 DEFAULT_STRIP_LIST = ['</s>']
-ENV_FILE = os.path.join('..', '.env')
